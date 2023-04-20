@@ -27,34 +27,20 @@ use librespot::protocol::spirc::TrackRef;
 use sha1::{Digest, Sha1};
 use tokio::join;
 
-use librespot::{
-    connect::spirc::Spirc,
-    playback::{audio_backend::Sink, config::AudioFormat},
-};
-use std::sync::Mutex;
-
-pub struct AppCredentials(Mutex<Option<librespot::discovery::Credentials>>);
-pub struct AppAudioBackend(Mutex<fn(Option<String>, AudioFormat) -> Box<dyn Sink>>);
-pub struct AppPlayer(Mutex<Option<Spirc>>);
-
-impl AppCredentials {
-    pub fn new(value: Option<librespot::discovery::Credentials>) -> AppCredentials {
-        AppCredentials(Mutex::new(value))
-    }
-}
-impl AppAudioBackend {
-    pub fn new(value: fn(Option<String>, AudioFormat) -> Box<dyn Sink>) -> AppAudioBackend {
-        AppAudioBackend(Mutex::new(value))
-    }
-}
-impl AppPlayer {
-    pub fn new(value: Option<Spirc>) -> AppPlayer {
-        AppPlayer(Mutex::new(value))
-    }
+struct AppState {
+    credentials: Mutex<Option<librespot::discovery::Credentials>>,
+    audio_backend: Mutex<fn(Option<String>, AudioFormat) -> Box<dyn Sink>>,
+    player: Mutex<Option<Spirc>>,
 }
 
-fn new_arc_mutex<T>(value: T) -> Arc<Mutex<T>> {
-    Arc::new(Mutex::new(value))
+impl AppState {
+    fn default() -> AppState {
+        AppState {
+            credentials: Mutex::new(None),
+            audio_backend: Mutex::new(audio_backend::find(None).unwrap()),
+            player: Mutex::new(None),
+        }
+    }
 }
 
 fn device_id(name: &str) -> String {
@@ -67,7 +53,7 @@ const SCOPES: &str =
 async fn login(
     username: String,
     password: String,
-    appCredentials: tauri::State<'_, AppCredentials>,
+    state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let credentials = Credentials::with_password(username, password);
     let res = Session::new(SessionConfig::default(), None)
@@ -76,7 +62,7 @@ async fn login(
 
     match res {
         Ok(_) => {
-            *appCredentials.0.lock().unwrap() = Some(credentials);
+            *state.credentials.lock().unwrap() = Some(credentials);
             Ok(())
         }
         Err(err) => Err(err.to_string()),
@@ -84,44 +70,35 @@ async fn login(
 }
 
 #[tauri::command]
-async fn start_spotify_connect(
-    context_uri: String,
-    credentials: tauri::State<'_, AppCredentials>,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+async fn start_spotify_connect(state: tauri::State<'_, AppState>) -> Result<(), String> {
     let credentials = state.credentials.lock().unwrap().to_owned();
-    let backend = state.audio_backend.lock().unwrap().to_owned();
+    let backend = *state.audio_backend.lock().unwrap();
 
     let session_config = SessionConfig::default();
     let player_config = PlayerConfig::default();
     let audio_format = AudioFormat::default();
     let connect_config = ConnectConfig {
         name: "Mini Spotify".to_string(),
-        device_type: DeviceType::AudioDongle,
+        device_type: DeviceType::Observer,
         initial_volume: Some(50),
         has_volume_ctrl: true,
     };
-
-    let session = Session::new(session_config, None);
-    // let error_opt = session.connect(credentials.clone().unwrap(), false).await.err();
 
     match credentials {
         Some(_) => (),
         None => return Err("Not logged.".to_string()),
     };
-    // match error_opt {
-    //     None => (),
-    //     Some(error) => return Err(error.to_string())
-    // };
 
-    let player = AppPlayer::new(
+    let session = Session::new(session_config, None);
+
+    let player = Player::new(
         player_config,
         session.clone(),
         Box::new(NoOpVolume),
         move || backend(None, audio_format),
     );
 
-    let spirc_res = Spirc::new(
+    let player_res = Spirc::new(
         connect_config,
         session.clone(),
         credentials.unwrap(),
@@ -130,201 +107,76 @@ async fn start_spotify_connect(
     )
     .await;
 
-    match spirc_res {
-        Err(err) => return Err(err.to_string()),
+    match player_res {
+        Err(error) => Err(error.to_string()),
         Ok((spirc, spirc_task)) => {
             join!(spirc_task, async {
-                println!("Connected !");
-
-                let album = Album::get(&session, &SpotifyId::from_uri(&context_uri).unwrap())
-                    .await
-                    .unwrap();
-
-                let tracks = album
-                    .tracks()
-                    .map(|track_id| {
-                        let mut track = TrackRef::new();
-                        track.set_gid(Vec::from(track_id.to_raw()));
-                        track
-                    })
-                    .collect();
-
-                spirc.activate().unwrap();
-                let load_command = SpircLoadCommand {
-                    context_uri,
-                    start_playing: true,
-                    shuffle: false,
-                    repeat: false,
-                    playing_track_index: 0,
-                    tracks,
-                };
-
-                spirc.load(load_command).unwrap();
-                // err.map(|err| println!("{}", err.to_string()));
-
-                spirc.play().unwrap();
-
-                *state.spirc.lock().unwrap() = Some(spirc);
-            });
+                let activation_res = spirc.activate().map_err(|err| err.to_string());
+                *state.player.lock().unwrap() = Some(spirc);
+                activation_res
+            }).1
         }
-    };
-
-    Ok(())
-}
-
-#[tauri::command]
-fn show_login(credentials: tauri::State<'_, AppCredentials>, player: tauri::State<'_, AppPlayer>) {
-    println!(
-        "Credentials: {:?}",
-        credentials.0.lock().unwrap().is_some()
-    );
-    println!("Spirc: {:?}", player.0.lock().unwrap().is_some());
-}
-
-#[tauri::command]
-fn toggle_song(player: tauri::State<'_, AppPlayer>) -> Result<(), String> {
-    let player = player.0.lock().unwrap();
-    match *player {
-        None => Err("Player not started.".to_string()),
-        Some(spirc) => spirc.play_pause().map_err(|err| err.to_string()),
     }
 }
 
-// #[tauri::command]
-// async fn test_song(stored_credentials: tauri::State<'_, StoredCredentials>) -> Result<(), ()> {
-//     let session_config = SessionConfig::default();
-//     let player_config = PlayerConfig::default();
-//     let audio_format = AudioFormat::default();
-//     let connect_config =
-//     ConnectConfig {
-//         name: "Mini Spotify".to_string(),
-//         device_type: DeviceType::default(),
-//         initial_volume: Some(50),
-//         has_volume_ctrl: true,
-//     };
+#[tauri::command]
+fn play(state: tauri::State<'_, AppState>) -> Result<(), String> {
+    let player_opt = state.player.lock().unwrap();
+    match player_opt.deref() {
+        Some(player) => {
+            player.play().map_err(|err| err.to_string())
+        },
+        None => return Err("Player not started".to_string()),
+    }
+}
 
-//     let credentials = Credentials::with_password(username, password);
-//     let backend = audio_backend::find(None).unwrap();
+#[tauri::command]
+fn pause(state: tauri::State<'_, AppState>) -> Result<(), String> {
+    let player_opt = state.player.lock().unwrap();
+    match player_opt.deref() {
+        Some(player) => {
+            player.pause().map_err(|err| err.to_string())
+        },
+        None => Err("Player not started".to_string()),
+    }
+}
 
-//     let context_uri = String::from("spotify:album:0C8bAFI1POhzztBVShuzll");
+// let album = Album::get(&session, &SpotifyId::from_uri(&context_uri).unwrap())
+//     .await
+//     .unwrap();
 
-//     println!("Connecting ...");
-//     let session = Session::new(session_config, None);
-//     // let error_opt = session.connect(credentials.clone(), false).await.err();
+// let tracks = album
+//     .tracks()
+//     .map(|track_id| {
+//         let mut track = TrackRef::new();
+//         track.set_gid(Vec::from(track_id.to_raw()));
+//         track
+//     })
+//     .collect();
 
-//     // match error_opt {
-//     //     Some(error) => println!("{}", error.to_string()),
-//     //     None => ()
-//     // };
+// spirc.activate().unwrap();
+// let load_command = SpircLoadCommand {
+//     context_uri,
+//     start_playing: true,
+//     shuffle: false,
+//     repeat: false,
+//     playing_track_index: 0,
+//     tracks,
+// };
 
-//     // let discovery = Discovery::builder(session.device_id(), session.client_id().as_str())
-//     //     .device_type(librespot::discovery::DeviceType::HomeThing)
-//     //     .name("Mini Spotify")
-//     //     .port(0)
-//     //     .launch()
-//     //     .unwrap();
+// spirc.load(load_command).unwrap();
+// // err.map(|err| println!("{}", err.to_string()));
 
-//     let player = Player::new(
-//         player_config,
-//         session.clone(),
-//         Box::new(NoOpVolume),
-//         move || backend(None, audio_format),
-//     );
-
-//     let res = Spirc::new(
-//         connect_config,
-//         session.clone(),
-//         credentials,
-//         player,
-//         Box::new(SoftMixer::open(MixerConfig::default())),
-//     )
-//     .await;
-
-//     match res {
-//         Err(err) => println!("{}", err.to_string()),
-//         Ok((spirc, spirc_task)) => {
-//             join!(spirc_task, async {
-//                 println!("Connected !");
-
-//                 let album = Album::get(&session, &SpotifyId::from_uri(&context_uri).unwrap())
-//                     .await
-//                     .unwrap();
-
-//                 let tracks = album
-//                     .tracks()
-//                     .map(|track_id| {
-//                         let mut track = TrackRef::new();
-//                         track.set_gid(Vec::from(track_id.to_raw()));
-//                         track
-//                     })
-//                     .collect();
-
-//                 spirc.activate().unwrap();
-//                 let load_command = SpircLoadCommand {
-//                     context_uri,
-//                     start_playing: true,
-//                     shuffle: false,
-//                     repeat: false,
-//                     playing_track_index: 0,
-//                     tracks
-//                 };
-
-//                 spirc.load(load_command).unwrap();
-//                 // err.map(|err| println!("{}", err.to_string()));
-
-//                 spirc.play().unwrap();
-//             });
-//         }
-//     };
-
-//     // match session_res {
-//     //     Ok((session, _)) => {
-//     //         let (mut player, _) = Player::new(player_config, session, Box::new(NoOpVolume), move || {
-//     //             backend(None, audio_format)
-//     //         });
-
-//     //         let connect_config = librespot::core::config::ConnectConfig::default();
-
-//     //         let res =
-//     //             librespot_discovery::Discovery::builder(device_id(&connect_config.name))
-//     //                 .device_type(librespot_discovery::DeviceType::HomeThing)
-//     //                 .name("Mini Spotify")
-//     //                 .port(0)
-//     //                 .launch();
-
-//     //         match res {
-//     //             Ok(res) => (),
-//     //             Err(err) => println!("{}", err.to_string())
-//     //         };
-
-//     //         // println!("{}", )
-
-//     //         // player.load(SpotifyId::from_base62("7oTQ4d0UJeH8LOyvpfd5uW").unwrap(), true, 0);
-//     //         // println!("Playing...");
-
-//     //         // player.await_end_of_track().await;
-//     //         // println!("Done");
-//     //     },
-//     //     Err(error) => println!("{}", error.to_string()),
-//     // };
-
-//     Ok(())
-// }
+// spirc.play().unwrap();
 
 fn main() {
-    let initial_credential = AppCredentials::new(None);
-    let initial_audio_backend = AppAudioBackend::new(audio_backend::find(None).unwrap());
-    let initial_player = AppPlayer::new(None);
-
     tauri::Builder::default()
-        .manage(initial_credential)
-        .manage(initial_audio_backend)
-        .manage(initial_player)
+        .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             login,
-            show_login,
             start_spotify_connect,
-            toggle_song
+            play,
+            pause
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
