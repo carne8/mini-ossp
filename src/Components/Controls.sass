@@ -1,4 +1,5 @@
 .controls
+  user-select: none
   width: 112px
   display: flex
   justify-content: space-between
@@ -37,8 +38,11 @@
     fill: black
     margin-left: 1px
 
+#play-pause.playing svg
+  margin-left: unset
+
 #play-pause:hover
-  transform: scale(1.06)
+  transform: scale(1.07)
 
 #play-pause:active
   transform: scale(0.94)

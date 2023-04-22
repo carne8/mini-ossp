@@ -26,7 +26,8 @@
         "minimize": true,
         "unmaximize": true,
         "unminimize": true,
-        "startDragging": true
+        "startDragging": true,
+        "setSize": true
       }
     },
     "bundle": {
@@ -50,12 +51,12 @@
     "windows": [
       {
         "fullscreen": false,
-        "resizable": true,
+        "resizable": false,
         "decorations": false,
+        "transparent": true,
         "title": "mini-spotify",
-        "width": 200,
-        "height": 200,
-        "transparent": true
+        "width": 300,
+        "height": 90
       }
     ]
   }

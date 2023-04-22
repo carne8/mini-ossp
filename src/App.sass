@@ -1,5 +1,71 @@
+@font-face
+  font-family: "Mona Sans"
+  src: url("./assets/fonts//Mona-Sans.woff2") format("woff2 supports variations"), url("./assets/fonts//Mona-Sans.woff2") format("woff2-variations"), url("./assets/fonts//Mona-Sans.woff") format("woff-variations"), url("./assets/fonts//Mona-Sans.ttf") format("truetype-variations")
+  font-weight: 200 900
+  font-stretch: 75% 125%
+  font-display: swap
+
+:root, html, body
+  overflow: hidden
+  height: fit-content
+  margin: 0px
+
+  width: 100%
+  height: 100%
+
+  *
+    font-family: Mona Sans
+
 #root
+  font-size: 16px
+
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: row
+
   user-select: none
-  padding: 5px
-  background-color: black
   border-radius: 9px
+  background-color: #181818
+  color: white
+  overflow: hidden
+
+.cover
+  height: 100%
+  aspect-ratio: 1
+  user-select: none
+
+.content
+  user-select: none
+  display: flex
+  flex-direction: column
+  align-items: flex-start
+  justify-content: space-between
+
+  .info
+    display: flex
+    flex-direction: column
+    align-items: center
+    justify-content: space-between
+    padding: 6px
+    gap: 4px
+
+    span
+      width: max-content
+      min-width: 100%
+      text-align: left
+
+    .title
+      font-size: 14px
+    .subtitle
+      font-size: 12px
+      color: #b3b3b3
+
+  .controls-container
+    user-select: none
+    margin-bottom: 10px
+    width: calc(100vw - 100vh)
+
+    display: flex
+    align-items: center
+    justify-content: center

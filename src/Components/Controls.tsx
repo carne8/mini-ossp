@@ -1,8 +1,8 @@
-import playSvg from "../assets/play.svg"
-import pauseSvg from "../assets/pause.svg"
-import previousSvg from "../assets/previous.svg"
-import nextSvg from "../assets/next.svg"
-import sass from "./Controls.module.sass"
+import playSvg from "../assets/icons/play.svg"
+import pauseSvg from "../assets/icons/pause.svg"
+import previousSvg from "../assets/icons/previous.svg"
+import nextSvg from "../assets/icons/next.svg"
+import "./Controls.sass"
 
 export const Controls = (props: {
   playing: boolean,
@@ -10,9 +10,9 @@ export const Controls = (props: {
   previous: () => void,
   next: () => void
 }) => (
-  <div class={sass.controls}>
-    <button id={sass.previous} onClick={props.previous}>{previousSvg}</button>
-    <button id={sass["play-pause"]} onClick={props.toggle}>{props.playing ? pauseSvg : playSvg}</button>
-    <button id={sass.next} onClick={props.next}>{nextSvg}</button>
+  <div class="controls">
+    <button id="previous" onClick={props.previous}>{previousSvg}</button>
+    <button id="play-pause" onClick={props.toggle} classList={{ playing: props.playing }}>{props.playing ? pauseSvg : playSvg}</button>
+    <button id="next" onClick={props.next}>{nextSvg}</button>
   </div>
 )
