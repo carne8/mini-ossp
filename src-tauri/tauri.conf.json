@@ -16,6 +16,17 @@
       "shell": {
         "all": false,
         "open": true
+      },
+      "window": {
+        "all": false,
+        "close": true,
+        "hide": true,
+        "show": true,
+        "maximize": true,
+        "minimize": true,
+        "unmaximize": true,
+        "unminimize": true,
+        "startDragging": true
       }
     },
     "bundle": {
@@ -39,11 +50,12 @@
     "windows": [
       {
         "fullscreen": false,
-        "resizable": false,
-        "decorations": true,
+        "resizable": true,
+        "decorations": false,
         "title": "mini-spotify",
         "width": 200,
-        "height": 200
+        "height": 200,
+        "transparent": true
       }
     ]
   }

@@ -2175,6 +2175,8 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 name = "mini-spotify"
 version = "0.0.0"
 dependencies = [
+ "futures",
+ "futures-core",
  "hex",
  "librespot",
  "serde",

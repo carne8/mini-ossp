@@ -1,0 +1,44 @@
+.controls
+  width: 112px
+  display: flex
+  justify-content: space-between
+  align-items: center
+
+  button
+    width: 1rem
+    height: 1rem
+    padding: 0px
+    border: none
+    background-color: transparent
+    display: flex
+    align-items: center
+    justify-content: center
+
+    svg
+      fill: #b3b3b3
+
+  button:hover
+    svg
+      fill: white
+
+  button:active
+    svg
+      fill: #b3b3b3
+
+#play-pause
+  background-color: white
+  width: 2.1rem
+  height: 2.1rem
+  border-radius: 1.05rem
+
+  transition: transform 60ms
+
+  svg
+    fill: black
+    margin-left: 1px
+
+#play-pause:hover
+  transform: scale(1.06)
+
+#play-pause:active
+  transform: scale(0.94)

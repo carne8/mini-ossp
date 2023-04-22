@@ -1,14 +1,12 @@
-import { defineConfig } from "vite";
-import solidPlugin from "vite-plugin-solid";
+import { defineConfig } from "vite"
+import solidPlugin from "vite-plugin-solid"
+import solidSvg from "vite-plugin-solid-svg"
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-  plugins: [solidPlugin()],
+  plugins: [solidPlugin(), solidSvg()],
 
-  // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
-  // prevent vite from obscuring rust errors
   clearScreen: false,
-  // tauri expects a fixed port, fail if that port is not available
   server: {
     port: 1420,
     strictPort: true,
@@ -24,4 +22,4 @@ export default defineConfig(async () => ({
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
   },
-}));
+}))
