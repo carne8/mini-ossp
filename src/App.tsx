@@ -2,6 +2,7 @@ import { createSignal, onMount } from "solid-js"
 import { InvokeArgs, invoke } from "@tauri-apps/api/tauri"
 import { LogicalSize, appWindow } from "@tauri-apps/api/window"
 import { Controls } from "./Components/Controls"
+import fallbackCover from "./assets/fallback-cover.svg?url"
 import "./App.sass"
 
 type TrackInfo = {
@@ -80,7 +81,7 @@ function App() {
 
   return (
     <>
-      <img data-tauri-drag-region class="cover" src={trackInfo()?.image || "https://placekitten.com/200/200"} />
+      <img data-tauri-drag-region class="cover" src={trackInfo()?.image || fallbackCover} />
 
       <div class="content" data-tauri-drag-region>
 

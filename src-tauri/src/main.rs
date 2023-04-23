@@ -89,14 +89,14 @@ async fn start_spotify_connect(
 
     let connect_config = ConnectConfig {
         name: "Mini Spotify".to_string(),
-        device_type: discovery::DeviceType::Observer,
+        device_type: discovery::DeviceType::Speaker,
         initial_volume: Some(50),
         has_volume_ctrl: true,
     };
 
     let mut server = librespot::discovery::Discovery::builder(device_id, client_id)
         .name(name)
-        .device_type(discovery::DeviceType::Computer)
+        .device_type(discovery::DeviceType::Speaker)
         .launch()
         .unwrap();
     let credentials = server.next().await.unwrap();
