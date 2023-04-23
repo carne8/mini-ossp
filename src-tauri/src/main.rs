@@ -5,6 +5,7 @@ use std::env;
 use std::sync::Mutex;
 
 use futures::StreamExt;
+use librespot::core::SpotifyId;
 use librespot::metadata::{Metadata, Track};
 use librespot::playback::mixer::Mixer;
 use librespot::playback::player::PlayerEvent;
@@ -54,10 +55,23 @@ fn create_player(session: Session) -> Player {
     })
 }
 
-#[tauri::command]
-fn check_player_state(player: tauri::State<'_, CurrentPlayer>) -> bool {
-    player.0.lock().unwrap().is_some()
+async fn load_track_data(session: &Session, track_id: &SpotifyId) -> String {
+    let track = Track::get(session, track_id).await.unwrap();
+
+    let album_cover_file_id = track.album.covers.0[0].id;
+    let album_cover_url = format!("{}{}", CDN_URL, album_cover_file_id.to_string());
+
+    let artists = track
+        .artists
+        .0
+        .iter()
+        .map(|artist| artist.name.to_owned())
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    [track.name, artists, track.album.name, album_cover_url].join("|separator|")
 }
+
 
 #[tauri::command]
 async fn start_spotify_connect(
@@ -88,8 +102,32 @@ async fn start_spotify_connect(
     let credentials = server.next().await.unwrap();
 
     let session = create_session(&name);
+    let session_ = session.clone();
     let player = create_player(session.clone());
     let mut event_channel = player.get_player_event_channel();
+
+    tokio::spawn(async move {
+        while let Some(event) = event_channel.recv().await {
+            match event {
+                PlayerEvent::Paused { .. } => _ = window.emit("player_event", "paused"),
+                PlayerEvent::Playing { track_id, .. } => {
+                    let track_data = load_track_data(&session_, &track_id).await;
+                    _ = window.emit(
+                        "player_event",
+                        String::from("playing:") + track_data.as_str(),
+                    );
+                }
+                PlayerEvent::Loading { track_id, .. } => {
+                    let track_data = load_track_data(&session_, &track_id).await;
+                    _ = window.emit(
+                        "player_event",
+                        String::from("loaded:") + track_data.as_str(),
+                    );
+                }
+                _ => ()
+            };
+        }
+    });
 
     let spirc_res = Spirc::new(
         connect_config,
@@ -105,40 +143,10 @@ async fn start_spotify_connect(
         Err(error) => return Err(format!("Failed to start spirc: {}", error)),
     };
 
-    tokio::spawn(async move {
-        while let Some(event) = event_channel.recv().await {
-            match event {
-                PlayerEvent::Paused { .. } => _ = window.emit("player_event", "paused"),
-                PlayerEvent::Playing { track_id, .. } => {
-                    let track = Track::get(&session, &track_id).await.unwrap();
-
-                    let album_cover_file_id = track.album.covers.0[0].id;
-                    let album_cover_url = format!("{}{}", CDN_URL, album_cover_file_id.to_string());
-
-                    let artists = track
-                        .artists
-                        .0
-                        .iter()
-                        .map(|artist| artist.name.to_owned())
-                        .collect::<Vec<String>>()
-                        .join(", ");
-
-                    let track_data = [track.name, artists, track.album.name, album_cover_url].join("|separator|");
-                    _ = window.emit(
-                        "player_event",
-                        String::from("playing:") + track_data.as_str(),
-                    );
-                }
-                _ => (),
-            };
-        }
-    });
-
     tokio::spawn(spirc_task);
 
     *app_player.0.lock().unwrap() = Some(spirc);
     *discovery_started.0.lock().unwrap() = true;
-    println!("voila");
 
     Ok(())
 }
@@ -167,7 +175,6 @@ fn main() {
         .manage(CurrentPlayer::default())
         .manage(DiscoveryStarted(Mutex::new(false)))
         .invoke_handler(tauri::generate_handler![
-            check_player_state,
             start_spotify_connect,
             player_command
         ])

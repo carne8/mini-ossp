@@ -6,26 +6,47 @@ import "./App.sass"
 
 type TrackInfo = {
   title: string,
-  artists: string,
-  album: string,
+  artistsAlbum: string,
   image: string
 }
 
-const titleFontSize = parseInt((document.querySelector(".title") as HTMLElement | null)?.style.fontSize || "14")
+const WINDOW_HEIGHT = 90
+const MAX_WINDOW_WIDTH = 350
+const MIN_CONTENT_WIDTH = 140
+const CONTENT_EXTRA_WIDTH = 30
 
 function App() {
   const [playerPlaying, setPlayerPlaying] = createSignal(false)
   const [uiPlaying, setUiPlaying] = createSignal<boolean | null>(null)
   const [trackInfo, setTrackInfo] = createSignal<TrackInfo | null>(null)
+
+  const [widthCalculated, setWidthCalculated] = createSignal(false)
   let titleRef: HTMLElement | undefined
+  let subtitleRef: HTMLElement | undefined
 
   const invokeCommand = (commandName: string, invokeArgs?: InvokeArgs) =>
     invoke(commandName, invokeArgs)
       .catch(error => { console.warn(error); setUiPlaying(null) })
-  const playerStarted = () => invokeCommand("check_player_state")
+
+  const setTrack = (data: string) => {
+    const [title, artists, album, image] = data.split("|separator|")
+    setTrackInfo({ title, artistsAlbum: `${artists} • ${album}`, image })
+  }
+
+  const calculateWindowWidth = () => {
+    setWidthCalculated(false)
+
+    const titleWidth = titleRef?.offsetWidth || 200
+    const subtitleWidth = subtitleRef?.offsetWidth || 180
+    const necessarySpace = Math.max(titleWidth, subtitleWidth, MIN_CONTENT_WIDTH) + CONTENT_EXTRA_WIDTH
+    const newWindowWidth = Math.min(necessarySpace + WINDOW_HEIGHT, MAX_WINDOW_WIDTH)
+    appWindow.setSize(new LogicalSize(newWindowWidth, WINDOW_HEIGHT))
+
+    setWidthCalculated(true)
+  }
 
   onMount(async () => {
-    appWindow.setSize(new LogicalSize(300, 90))
+    calculateWindowWidth()
 
     appWindow.listen("player_event", ({ payload }: { payload: String }) => {
       const splitPayload = payload.split(":")
@@ -34,21 +55,18 @@ function App() {
         case "playing":
           setPlayerPlaying(true)
           setUiPlaying(null)
-
-          const payloadContent = payload.substring("playing".length + 1)
-          const [title, artists, album, image] = payloadContent.split("|separator|")
-          setTrackInfo({ title, artists, album, image })
-
-          let newWindowWidth = (titleRef?.clientWidth || 280) + 130
-          appWindow.setSize(new LogicalSize(newWindowWidth, 90))
-
+          setTrack(payload.substring("playing:".length))
+          calculateWindowWidth()
+          break
+        case "loaded":
+          setPlayerPlaying(false)
+          setTrack(payload.substring("loaded:".length))
+          calculateWindowWidth()
           break
       }
     })
 
-    !await playerStarted()
-      ? await invokeCommand("start_spotify_connect")
-      : console.info("Didn't start player because it is already started.")
+    await invokeCommand("start_spotify_connect")
   })
 
   const playing = () => uiPlaying() !== null ? uiPlaying()! : playerPlaying()
@@ -64,22 +82,17 @@ function App() {
     <>
       <img data-tauri-drag-region class="cover" src={trackInfo()?.image || "https://placekitten.com/200/200"} />
 
-      <div class="content">
+      <div class="content" data-tauri-drag-region>
 
-        <div class="info">
-          <span ref={titleRef} class="title">{trackInfo()?.title || <i>Sound not loaded</i>}</span>
-
-          <span class="subtitle">{
-            trackInfo()?.artists
-              ? `${trackInfo()?.artists} • ${trackInfo()?.album}`
-              : <i>Artist not loaded</i>
-          }</span>
-
+        <div class="info" classList={{ "width-calculated": widthCalculated() }} data-tauri-drag-region>
+          <span ref={titleRef} class="title">{trackInfo()?.title || <i>Sound not loaded\u00A0</i>}</span>
+          <span ref={subtitleRef} class="subtitle">{trackInfo()?.artistsAlbum || <i>Artist not loaded\u00A0</i>}</span>
         </div>
 
-        <div class="controls-container">
+        <div class="controls-container" data-tauri-drag-region>
           <Controls playing={playing()} toggle={toggle} previous={previous} next={next} />
         </div>
+
       </div>
     </>
   )
