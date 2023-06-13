@@ -1,4 +1,4 @@
-import { BaseDirectory, createDir, exists, readTextFile, writeTextFile } from "@tauri-apps/api/fs"
+import { BaseDirectory, exists, readTextFile, writeTextFile } from "@tauri-apps/api/fs"
 import * as OAuth from "./OAuth"
 
 type Schema = {
@@ -84,7 +84,7 @@ const refreshToken = async (_refreshToken?: string) => {
 
 export const initializeTokenManager = async () => await loadConfig()
 
-export const getToken = async () => {
+export const getAccessToken = async () => {
   const token = cachedConfig?.accessToken
 
   // If there isn't any token, generate a new one
