@@ -57,6 +57,7 @@
     },
     "windows": [
       {
+        "alwaysOnTop": true,
         "fullscreen": false,
         "resizable": false,
         "decorations": false,
