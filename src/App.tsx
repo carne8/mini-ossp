@@ -5,6 +5,8 @@ import { Controls } from "./Components/Controls"
 import fallbackCover from "./assets/fallback-cover.svg?url"
 import "./App.sass"
 
+import { getToken, initializeTokenManager } from "./TokenManager"
+
 type TrackInfo = {
   title: string,
   artistsAlbum: string,
@@ -49,25 +51,26 @@ function App() {
   onMount(async () => {
     calculateWindowWidth()
 
-    appWindow.listen("player_event", ({ payload }: { payload: String }) => {
-      const splitPayload = payload.split(":")
-      switch (splitPayload[0]) {
-        case "paused": setPlayerPlaying(false); setUiPlaying(null); break
-        case "playing":
-          setPlayerPlaying(true)
-          setUiPlaying(null)
-          setTrack(payload.substring("playing:".length))
-          calculateWindowWidth()
-          break
-        case "loaded":
-          setPlayerPlaying(false)
-          setTrack(payload.substring("loaded:".length))
-          calculateWindowWidth()
-          break
-      }
-    })
+    // appWindow.listen("player_event", ({ payload }: { payload: String }) => {
+    //   const splitPayload = payload.split(":")
+    //   switch (splitPayload[0]) {
+    //     case "paused": setPlayerPlaying(false); setUiPlaying(null); break
+    //     case "playing":
+    //       setPlayerPlaying(true)
+    //       setUiPlaying(null)
+    //       setTrack(payload.substring("playing:".length))
+    //       calculateWindowWidth()
+    //       break
+    //     case "loaded":
+    //       setPlayerPlaying(false)
+    //       setTrack(payload.substring("loaded:".length))
+    //       calculateWindowWidth()
+    //       break
+    //   }
+    // })
 
-    await invokeCommand("start_spotify_connect")
+    await initializeTokenManager()
+    console.log(await getToken())
   })
 
   const playing = () => uiPlaying() !== null ? uiPlaying()! : playerPlaying()

@@ -28,6 +28,13 @@
         "unminimize": true,
         "startDragging": true,
         "setSize": true
+      },
+      "fs": {
+        "all": true,
+        "scope": ["$APP/*"]
+      },
+      "path": {
+        "all": true
       }
     },
     "bundle": {
