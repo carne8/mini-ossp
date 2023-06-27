@@ -1,5 +1,5 @@
 import { createSignal, onMount } from "solid-js"
-import { LogicalSize, appWindow } from "@tauri-apps/api/window"
+import { LogicalSize, PhysicalPosition, appWindow, currentMonitor } from "@tauri-apps/api/window"
 import { Controls } from "./Components/Controls"
 import fallbackCover from "./assets/fallback-cover.svg?url"
 import "./App.sass"
@@ -22,20 +22,37 @@ function App() {
   let titleRef: HTMLElement | undefined
   let subtitleRef: HTMLElement | undefined
 
-  const calculateWindowWidth = () => {
+  const calculateWindowWidth = async () => {
+    const oldWindowSize = await appWindow.innerSize()
+
     setWidthCalculated(false)
 
     const titleWidth = titleRef?.offsetWidth || 200
     const subtitleWidth = subtitleRef?.offsetWidth || 180
     const necessarySpace = Math.max(titleWidth, subtitleWidth, MIN_CONTENT_WIDTH) + CONTENT_EXTRA_WIDTH
     const newWindowWidth = Math.min(necessarySpace + WINDOW_HEIGHT, MAX_WINDOW_WIDTH)
-    appWindow.setSize(new LogicalSize(newWindowWidth, WINDOW_HEIGHT))
+    await appWindow.setSize(new LogicalSize(newWindowWidth, WINDOW_HEIGHT))
 
     setWidthCalculated(true)
+
+    const windowPosition = await appWindow.innerPosition()
+    const windowSize = await appWindow.innerSize()
+    const monitor = await currentMonitor()
+    if (!monitor) return
+
+    const windowCenterPosition = windowPosition.x + windowSize.width / 2
+    const isOnTheRightOfTheScreen = monitor.size.width / 2 < windowCenterPosition
+    const offset = oldWindowSize.width - newWindowWidth
+
+    console.log(isOnTheRightOfTheScreen)
+
+    const newWindowPosition = new PhysicalPosition(windowPosition.x + offset, windowPosition.y)
+    isOnTheRightOfTheScreen && appWindow.setPosition(newWindowPosition)
   }
 
   const refresh = async () => {
     setPlaybackSate(await SpotifyController.getPlaybackState())
+    setUiPlaying(null)
     calculateWindowWidth()
   }
 

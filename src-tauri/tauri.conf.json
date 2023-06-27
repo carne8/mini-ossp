@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "mini-spotify",
-    "version": "0.0.0"
+    "version": "1.1.0"
   },
   "tauri": {
     "allowlist": {
@@ -19,15 +19,9 @@
       },
       "window": {
         "all": false,
-        "close": true,
-        "hide": true,
-        "show": true,
-        "maximize": true,
-        "minimize": true,
-        "unmaximize": true,
-        "unminimize": true,
         "startDragging": true,
-        "setSize": true
+        "setSize": true,
+        "setPosition": true
       },
       "fs": {
         "all": true,
