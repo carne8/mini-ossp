@@ -35,18 +35,24 @@ function App() {
 
     setWidthCalculated(true)
 
-    const windowPosition = await appWindow.innerPosition()
-    const windowSize = await appWindow.innerSize()
     const monitor = await currentMonitor()
     if (!monitor) return
+
+    const windowSize = await appWindow.innerSize()
+    const absoluteWindowPosition = await appWindow.innerPosition()
+    const windowPosition = {
+      ...absoluteWindowPosition,
+      x: absoluteWindowPosition.x - monitor.position.x,
+      y: absoluteWindowPosition.y - monitor.position.y
+    }
+
+    console.log(windowPosition.x, windowPosition.y)
 
     const windowCenterPosition = windowPosition.x + windowSize.width / 2
     const isOnTheRightOfTheScreen = monitor.size.width / 2 < windowCenterPosition
     const offset = oldWindowSize.width - newWindowWidth
 
-    console.log(isOnTheRightOfTheScreen)
-
-    const newWindowPosition = new PhysicalPosition(windowPosition.x + offset, windowPosition.y)
+    const newWindowPosition = new PhysicalPosition(absoluteWindowPosition.x + offset, absoluteWindowPosition.y)
     isOnTheRightOfTheScreen && appWindow.setPosition(newWindowPosition)
   }
 
