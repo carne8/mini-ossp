@@ -1,9 +1,9 @@
 import { listen } from "@tauri-apps/api/event"
 import { open } from "@tauri-apps/api/shell"
 
-const clientId = "76e0a38d911846b89f1e8f31e0718da7"
-const clientSecret = "946aad0e166147f1adfb311b75ba51dd"
-const redirectUri = "mini-spotify://auth/callback"
+const clientId = import.meta.env.VITE_CLIENT_ID
+const clientSecret = import.meta.env.VITE_CLIENT_SECRET
+const redirectUri = import.meta.env.VITE_REDIRECT_URI
 
 export const requestLogin: () => Promise<string> = () => (
   new Promise(async (resolve, reject) => {
