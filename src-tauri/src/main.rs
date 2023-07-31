@@ -11,7 +11,7 @@ fn main() {
         .setup(|app| {
             let handle = app.handle();
             tauri_plugin_deep_link::register(
-                "mini-spotify",
+                "mini-ossp",
                 move |request| {
                     handle.emit_all("scheme-request-received", request).unwrap();
                 },

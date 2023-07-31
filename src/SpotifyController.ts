@@ -29,10 +29,10 @@ export const getPlaybackState: () => Promise<PlaybackState> = async () => {
 }
 
 export const pause: () => Promise<void> = async () =>
-  fetch("https://api.spotify.com/v1/me/player/pause", { method: "PUT", headers: await getHeaders() }).then(_ => {})
+  fetch("https://api.spotify.com/v1/me/player/pause", { method: "PUT", headers: await getHeaders() }).then(_ => { })
 
 export const play: () => Promise<void> = async () =>
-  fetch("https://api.spotify.com/v1/me/player/play", { method: "PUT", headers: await getHeaders() }).then(_ => {})
+  fetch("https://api.spotify.com/v1/me/player/play", { method: "PUT", headers: await getHeaders() }).then(_ => { })
 
 
 export const next: () => Promise<void> = async () =>

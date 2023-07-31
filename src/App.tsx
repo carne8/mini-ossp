@@ -46,8 +46,6 @@ function App() {
       y: absoluteWindowPosition.y - monitor.position.y
     }
 
-    console.log(windowPosition.x, windowPosition.y)
-
     const windowCenterPosition = windowPosition.x + windowSize.width / 2
     const isOnTheRightOfTheScreen = monitor.size.width / 2 < windowCenterPosition
     const offset = oldWindowSize.width - newWindowWidth

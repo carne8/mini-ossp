@@ -1,4 +1,4 @@
-import { BaseDirectory, exists, readTextFile, writeTextFile } from "@tauri-apps/api/fs"
+import { BaseDirectory, exists, readTextFile, writeTextFile, createDir } from "@tauri-apps/api/fs"
 import * as OAuth from "./OAuth"
 
 type Schema = {
@@ -19,6 +19,7 @@ const writeConfig = async () => {
 const loadConfig = async () => {
   const fileExists = await exists("app.conf", { dir: BaseDirectory.AppConfig })
   if (!fileExists) {
+    await createDir("", { dir: BaseDirectory.AppConfig, recursive: false })
     await writeTextFile("app.conf", "", { dir: BaseDirectory.AppConfig })
   }
 

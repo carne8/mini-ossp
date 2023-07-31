@@ -1,6 +1,6 @@
 {
-  "name": "mini-spotify",
-  "version": "2.1.2",
+  "name": "mini-ossp",
+  "version": "2.2.0",
   "description": "",
   "scripts": {
     "start": "vite",

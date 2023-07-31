@@ -1,10 +1,10 @@
 [package]
-name = "mini-spotify"
-version = "2.1.2"
+name = "mini-ossp"
+version = "2.2.0"
 description = "A Tauri App"
-authors = ["carne8"]
-license = ""
-repository = ""
+authors = ["Gaël Bouquain"]
+license = "MIT"
+repository = "https://github.com/carne8/mini-ossp"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
